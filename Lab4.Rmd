@@ -13,13 +13,13 @@ library(ggplot2)
 library(psych)
 library(bruceR)
 
+
 ```
 
 # Load dataset
 ```{r}
 
-lab4data <- read.csv("C:/Users/Colin/Documents/GitHub/Website/Lab4/skewed.csv")
-
+lab4data <- read.csv("/Users/xushimin/Documents/GitHub/Lab4/skewed.csv")
 
 ```
 
@@ -52,11 +52,19 @@ plot(density(lab4data$Performance, na.rm = TRUE, bw = 90),  lwd=2, main = "")
 ```{r}
 
 #a fun function to plot the violin plot by group, but it's not part of ggplot
-#violinBy(Performance ~ Group, data = lab4data, rain= TRUE, vertical = FALSE)
+violinBy(Performance ~ Group, data = lab4data, rain= TRUE, vertical = FALSE)
 
 
 #Find a way to plot the histograms, density, and qq plots by groups using ggplot
 
+ggplot(lab4data, aes(x = Performance)) + geom_histogram(binwidth = 20) + facet_wrap(~Group) + theme_classic()
+
+ggplot(lab4data, aes(x = Performance)) + geom_density(adjust = 2)  + facet_wrap(
+  ~Group) + theme_classic()
+
+qq<-ggplot(lab4data, aes(sample = Performance)) + geom_qq()  + theme_classic()
+
+qq+ geom_qq_line()
 
 #Use ggplot to create a violin plot by groups
 
@@ -73,18 +81,21 @@ shapiro.test(lab4data$Performance)
 
 
 
+
 ```
 
 ### Normality Tests by Group
 ```{r}
 
 #Use the describeBy() function to get skewness and kurtosis by group
+?describeBy()
 
+describeBy(Performance ~ Group, data = lab4data)
 
 #Use the group by function to get shapiro test results by group
 lab4data %>%
   group_by(Group) %>%
-  summarize(W = shapiro.test(Performance)$statistic)
+  summarize(W = shapiro.test(Performance)$statistic, p_value = shapiro.test(Performance)$p.value)
 
 #Use the filter function to get both
 
@@ -95,17 +106,19 @@ lab4data %>%
 ```
 # Q1: What is your overall conclusion about this variable's normality? Why?
 
-
+The variable has a relatively normal distribution. This is because all of p-value is large than 0.05.
 
 # Equal Variance between Groups
 ## Descrptive Variance
 ```{r}
 
-var(lab4data$Performance)
+lab4data_clean <- drop_na(lab4data)
 
-#lab4data %>%
-  #group_by(Group) %>%
-  #summarize(...)
+var(lab4data_clean$Performance)
+
+lab4data_clean %>%
+  group_by(Group) %>%
+  summarize(variance = var(Performance))
 
 
 ```
@@ -114,13 +127,13 @@ var(lab4data$Performance)
 ```{r}
 
 
-leveneTest(Performance~Group, lab4data)
+leveneTest(Performance~Group, lab4data_clean)
 
-MANOVA(lab4data, dv = "Performance", between = "Group")
+MANOVA(lab4data_clean, dv = "Performance", between = "Group")
 
 #What if you want to test equal variance between 2 groups specifically? 
 
-lab4dataConG1<-lab4data %>%
+lab4dataConG1<-lab4data_clean %>%
   filter(Group == "Control" | Group == "G1")
 
 leveneTest(Performance~Group, lab4dataConG1)
@@ -130,6 +143,8 @@ leveneTest(Performance~Group, lab4dataConG1)
 
 # Q2: Overall, does it meet the equal variance assumption across the groups? Why?
 
+No. Because p-value is 0.0311, which is less than 0.05, we reject the null hypothesis. This means that the assumption of equal variances across the groups is not met. 
+
 # Transformation
 ```{r}
 
@@ -137,8 +152,31 @@ leveneTest(Performance~Group, lab4dataConG1)
 
 lab4data$Performance_log <- log10(lab4data$Performance)
 
+ggplot(lab4data, aes(x = Performance_log)) + geom_histogram(binwidth = 0.25) + theme_classic()
+
+ggplot(lab4data, aes(x = Performance_log)) + geom_density(adjust = 2)  + theme_classic()
+
+qq<-ggplot(lab4data, aes(sample = Performance_log)) + geom_qq()  + theme_classic()
+
+qq+ geom_qq_line()
+
+violinBy(Performance_log ~ Group, data = lab4data, rain= TRUE, vertical = FALSE)
 
 
+#Find a way to plot the histograms, density, and qq plots by groups using ggplot
+
+ggplot(lab4data, aes(x = Performance_log)) + geom_histogram(binwidth = 0.25) + facet_wrap(~Group) + theme_classic()
+
+ggplot(lab4data, aes(x = Performance_log)) + geom_density(adjust = 2)  + facet_wrap(
+  ~Group) + theme_classic()
+
+qq<-ggplot(lab4data, aes(sample = Performance_log)) + geom_qq()  + theme_classic()
+
+qq+ geom_qq_line()
+ 
 ```
 
 # Q3: Run the above tests again with the transformed outcome. Compare the differences in results. 
+
+
+After we transform the outcome, we could see that the result becomes different. To be specific, the distribution becomes more normal, not with a long tail on the right side anymore. The density plot also display a more normal distribution after the transformation. 
